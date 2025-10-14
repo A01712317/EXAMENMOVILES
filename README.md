@@ -9,8 +9,6 @@ Android
 
 ### 1. Etapa: Planificación y Definición del Alcance
 
-| Proceso Tradicional (Software) | Proceso Ágil (Scrum) |
-| :--- | :--- |
 | Se realiza el analicis de requerimentos, la necesidad y el problema mediante la empatía
 | Se aplica scrumm para hacer el product backlog, planning de las hu a hacer en el sprint, definición de reglas de la tribu
 
