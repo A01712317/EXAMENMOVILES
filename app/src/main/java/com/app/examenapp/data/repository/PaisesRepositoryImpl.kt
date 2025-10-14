@@ -4,9 +4,9 @@ import com.app.examenapp.data.local.preferences.PaisPreferences
 import com.app.examenapp.data.mapper.toDomain
 import com.app.examenapp.data.remote.api.PaisesApi
 import com.app.examenapp.data.remote.dto.PaisDto
-import com.app.examenapp.data.remote.dto.PaisesListaDto
 import com.app.examenapp.domain.model.Pais
 import com.app.examenapp.domain.repository.PaisRepository
+import toDomain
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,7 +26,7 @@ class PaisRepositoryImpl @Inject constructor(
 
         // 2️ Si no hay cache o expiró, llamar al API
         return try {
-            val response: List<PaisesListaDto> = api.getPaisesLista()
+            val response:  List<PaisDto> = api.getPaisesLista()
             val paises = response.map { it.toDomain() }
 
             // 3️ Guardar en cache (guardas DTOs)
@@ -46,7 +46,7 @@ class PaisRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getPais(nombre: String): Pais {
-        // Buscar primero en cache
+        // 1. Buscar primero en cache (lógica existente)
         preferences.getPaisCache()?.let { cache ->
             if (preferences.isCacheValid()) {
                 cache.paisList.find { it.name.common.equals(nombre, ignoreCase = true) }?.let {
@@ -55,10 +55,27 @@ class PaisRepositoryImpl @Inject constructor(
             }
         }
 
-        // Si no está, intentar desde API
+        // 2. Si no está, intentar desde API
         return try {
             val response: List<PaisDto> = api.getPais(nombre)
-            response.first().toDomain()
+            val paisDto = response.first()
+
+            preferences.getPaisCache()?.let { currentCache ->
+                val updatedList = currentCache.paisList.toMutableList().apply {
+                    if (none { it.name.common.equals(paisDto.name.common, ignoreCase = true) }) {
+                        add(paisDto)
+                    }
+                }.toList()
+
+                // Guardar la lista COMPLETA actualizada en caché
+                preferences.savePaisesLista(
+                    paisList = updatedList,
+                    offset = updatedList.size,
+                    totalCount = updatedList.size
+                )
+            }
+
+            paisDto.toDomain()
         } catch (e: Exception) {
             preferences.getPaisCache()?.let { cache ->
                 cache.paisList.find { it.name.common.equals(nombre, ignoreCase = true) }

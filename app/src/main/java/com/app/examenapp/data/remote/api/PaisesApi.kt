@@ -11,11 +11,11 @@ interface PaisesApi {
     suspend fun getPaisesLista(
         @Query("limit") limit: Int = 20,
         @Query("offset") offset: Int = 0,
-    ): PaisesListaDto
+    ):  List<PaisDto>
 
     @GET("name/{nombre}")
     suspend fun getPais(
         @Path("nombre") nombre: String,
-    ): PaisDto
+    ):  List<PaisDto>
 
 }
