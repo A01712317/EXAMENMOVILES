@@ -3,9 +3,13 @@ package com.app.examenapp.presentation.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.app.examenapp.domain.model.Pais
+import com.app.examenapp.presentation.screens.detail.PaisDetalleScreen
 import com.app.examenapp.presentation.screens.home.HomeScreen
 
 /**
@@ -18,7 +22,7 @@ sealed class Screen(
     // Pantalla principal de la lista de países
     object Home : Screen("HomeScreen")
 
-    // Pantalla de detalle de un país (preparada para el futuro)
+    // Pantalla de detalle de un país
     object Detail : Screen("pais_detail/{paisNombre}") {
         // Función helper para construir la ruta con el argumento
         fun createRoute(paisNombre: String) = "pais_detail/$paisNombre"
@@ -45,27 +49,27 @@ fun PaisesNavGraph(
         composable(route = Screen.Home.route) {
             HomeScreen(
                 onPaisClick = { paisNombre ->
-                    // Navegar a la pantalla de detalle cuando esté implementada
-                    // navController.navigate(Screen.Detail.createRoute(paisNombre))
-                    println("Navegando a detalle de: $paisNombre")
+                    // Navegar a la pantalla de detalle
+                    navController.navigate(Screen.Detail.createRoute(paisNombre))
                 },
             )
         }
 
-        /*
-        // Pantalla de Detalle (Descomentar cuando implementes DetailScreen)
+        // Pantalla de Detalle
         composable(
             route = Screen.Detail.route,
-            arguments = listOf(navArgument("paisNombre") { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument("paisNombre") {
+                    type = NavType.StringType
+                }
+            ),
         ) { backStackEntry ->
             val paisNombre = backStackEntry.arguments?.getString("paisNombre") ?: ""
 
-            // Reemplazar con tu DetalleScreen real
-            // PaisDetailScreen(
-            //     paisNombre = paisNombre,
-            //     onBackClick = { navController.popBackStack() },
-            // )
+            PaisDetalleScreen(
+                nombrePais = paisNombre,
+                onBack = { navController.popBackStack() }
+            )
         }
-        */
     }
 }

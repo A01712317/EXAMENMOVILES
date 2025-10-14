@@ -6,7 +6,6 @@ import com.app.examenapp.data.remote.api.PaisesApi
 import com.app.examenapp.data.remote.dto.PaisDto
 import com.app.examenapp.domain.model.Pais
 import com.app.examenapp.domain.repository.PaisRepository
-import toDomain
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,7 +25,7 @@ class PaisRepositoryImpl @Inject constructor(
 
         // 2️ Si no hay cache o expiró, llamar al API
         return try {
-            val response:  List<PaisDto> = api.getPaisesLista()
+            val response: List<PaisDto> = api.getPaisesLista()
             val paises = response.map { it.toDomain() }
 
             // 3️ Guardar en cache (guardas DTOs)
@@ -46,28 +45,42 @@ class PaisRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getPais(nombre: String): Pais {
-        // 1. Buscar primero en cache (lógica existente)
+        // 1. Buscar primero en cache
         preferences.getPaisCache()?.let { cache ->
             if (preferences.isCacheValid()) {
-                cache.paisList.find { it.name.common.equals(nombre, ignoreCase = true) }?.let {
-                    return it.toDomain()
-                }
+                cache.paisList.find { it.name.common.equals(nombre, ignoreCase = true) }
+                    ?.let { paisDto ->
+                        // VALIDAR SI TIENE DATOS COMPLETOS
+                        val tieneDetalles = paisDto.capital != null ||
+                                paisDto.population != null ||
+                                paisDto.area != null
+
+                        if (tieneDetalles) {
+                            return paisDto.toDomain()
+                        }
+                    }
             }
         }
 
-        // 2. Si no está, intentar desde API
+        // 2. Si no está o está incompleto, llamar a la API
         return try {
             val response: List<PaisDto> = api.getPais(nombre)
+
+            if (response.isEmpty()) {
+                throw Exception("No se encontró el país")
+            }
+
             val paisDto = response.first()
 
+            // Actualizar/reemplazar en el caché con datos COMPLETOS
             preferences.getPaisCache()?.let { currentCache ->
                 val updatedList = currentCache.paisList.toMutableList().apply {
-                    if (none { it.name.common.equals(paisDto.name.common, ignoreCase = true) }) {
-                        add(paisDto)
-                    }
+                    // Remover el país incompleto si existe
+                    removeAll { it.name.common.equals(paisDto.name.common, ignoreCase = true) }
+                    // Agregar el país con datos completos
+                    add(paisDto)
                 }.toList()
 
-                // Guardar la lista COMPLETA actualizada en caché
                 preferences.savePaisesLista(
                     paisList = updatedList,
                     offset = updatedList.size,
@@ -77,10 +90,13 @@ class PaisRepositoryImpl @Inject constructor(
 
             paisDto.toDomain()
         } catch (e: Exception) {
+            // Si falla, intentar fallback a caché (aunque esté vencido o incompleto)
             preferences.getPaisCache()?.let { cache ->
                 cache.paisList.find { it.name.common.equals(nombre, ignoreCase = true) }
                     ?.toDomain()
-            } ?: throw e
+            } ?: run {
+                throw e
+            }
         }
     }
 }

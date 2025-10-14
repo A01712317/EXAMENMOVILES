@@ -1,8 +1,10 @@
-// package com.app.examenapp.data.mapper
+package com.app.examenapp.data.mapper
 
 import com.app.examenapp.data.remote.dto.PaisDto
+import com.app.examenapp.data.remote.dto.PaisesListaDto
 import com.app.examenapp.domain.model.Pais
 
+// Mapper para PaisDto (respuesta completa de la API)
 fun PaisDto.toDomain(): Pais = Pais(
     nombre = name.common,
     nombreOficial = name.official,
@@ -18,10 +20,11 @@ fun PaisDto.toDomain(): Pais = Pais(
     monedas = currencies?.values
         ?.map { currency ->
             listOfNotNull(currency.name, currency.symbol)
-                .joinToString(" (", postfix = ")") { it }
+                .joinToString(" ")
         }
         ?: emptyList(),
-    // CORRECCIÓN: Cambiar 'm' por 'male'
     gentilicio = demonyms?.get("eng")?.male ?: "",
     mapaUrl = maps?.googleMaps
 )
+
+// Mapper para PaisesListaDto (respuesta de lista simplificada)
